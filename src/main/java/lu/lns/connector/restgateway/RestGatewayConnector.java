@@ -75,8 +75,9 @@ public class RestGatewayConnector implements PoolableConnector, CreateOp, Update
         userClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("lastName", String.class));
         userClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("email", String.class));
         userClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("enabled", Boolean.class));
-        userClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("roles", String.class,
-            AttributeInfo.Flags.MULTIVALUED));
+        AttributeInfoBuilder rolesBuilder = new AttributeInfoBuilder("roles", String.class);
+        rolesBuilder.setMultiValued(true);
+        userClassBuilder.addAttributeInfo(rolesBuilder.build());
         userClassBuilder.addAttributeInfo(OperationalAttributeInfos.PASSWORD);
         schemaBuilder.defineObjectClass(userClassBuilder.build());
 
