@@ -11,6 +11,14 @@ public class RestGatewayConfiguration extends AbstractConfiguration {
     private Integer requestTimeout = 60000;
     private Boolean validateSsl = true;
 
+    // RabbitMQ Configuration
+    private Boolean useRabbitmq = false;
+    private String rabbitmqHost = "localhost";
+    private Integer rabbitmqPort = 5672;
+    private String rabbitmqUsername = "admin";
+    private String rabbitmqPassword = "admin123";
+    private String rabbitmqQueue = "midpoint-operations";
+
     @Override
     public void validate() {
         if (gatewayUrl == null || gatewayUrl.trim().isEmpty()) {
@@ -81,5 +89,84 @@ public class RestGatewayConfiguration extends AbstractConfiguration {
 
     public void setValidateSsl(Boolean validateSsl) {
         this.validateSsl = validateSsl;
+    }
+
+    @ConfigurationProperty(
+        order = 10,
+        displayMessageKey = "useRabbitmq.display",
+        helpMessageKey = "useRabbitmq.help"
+    )
+    public Boolean getUseRabbitmq() {
+        return useRabbitmq;
+    }
+
+    public void setUseRabbitmq(Boolean useRabbitmq) {
+        this.useRabbitmq = useRabbitmq;
+    }
+
+    @ConfigurationProperty(
+        order = 11,
+        displayMessageKey = "rabbitmqHost.display",
+        helpMessageKey = "rabbitmqHost.help"
+    )
+    public String getRabbitmqHost() {
+        return rabbitmqHost;
+    }
+
+    public void setRabbitmqHost(String rabbitmqHost) {
+        this.rabbitmqHost = rabbitmqHost;
+    }
+
+    @ConfigurationProperty(
+        order = 12,
+        displayMessageKey = "rabbitmqPort.display",
+        helpMessageKey = "rabbitmqPort.help"
+    )
+    public Integer getRabbitmqPort() {
+        return rabbitmqPort;
+    }
+
+    public void setRabbitmqPort(Integer rabbitmqPort) {
+        this.rabbitmqPort = rabbitmqPort;
+    }
+
+    @ConfigurationProperty(
+        order = 13,
+        displayMessageKey = "rabbitmqUsername.display",
+        helpMessageKey = "rabbitmqUsername.help"
+    )
+    public String getRabbitmqUsername() {
+        return rabbitmqUsername;
+    }
+
+    public void setRabbitmqUsername(String rabbitmqUsername) {
+        this.rabbitmqUsername = rabbitmqUsername;
+    }
+
+    @ConfigurationProperty(
+        order = 14,
+        displayMessageKey = "rabbitmqPassword.display",
+        helpMessageKey = "rabbitmqPassword.help",
+        confidential = true
+    )
+    public String getRabbitmqPassword() {
+        return rabbitmqPassword;
+    }
+
+    public void setRabbitmqPassword(String rabbitmqPassword) {
+        this.rabbitmqPassword = rabbitmqPassword;
+    }
+
+    @ConfigurationProperty(
+        order = 15,
+        displayMessageKey = "rabbitmqQueue.display",
+        helpMessageKey = "rabbitmqQueue.help"
+    )
+    public String getRabbitmqQueue() {
+        return rabbitmqQueue;
+    }
+
+    public void setRabbitmqQueue(String rabbitmqQueue) {
+        this.rabbitmqQueue = rabbitmqQueue;
     }
 }

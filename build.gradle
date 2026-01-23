@@ -15,7 +15,7 @@ java {
 }
 
 group 'lu.lns'
-version '1.0.0-SNAPSHOT'
+version '1.1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
@@ -25,13 +25,16 @@ repositories {
 }
 
 dependencies {
-    implementation("net.tirasa.connid:connector-framework:${connidVersion}")
-    implementation("com.evolveum.polygon:connector-common:${polygonVersion}") {
+    compileOnly("net.tirasa.connid:connector-framework:${connidVersion}")
+    compileOnly("com.evolveum.polygon:connector-common:${polygonVersion}") {
         exclude group: 'net.tirasa.connid', module: 'connector-framework'
     }
 
     // JSON processing
     implementation 'com.google.code.gson:gson:2.10.1'
+
+    // RabbitMQ client
+    implementation 'com.rabbitmq:amqp-client:5.20.0'
 
     // Logging
     implementation 'org.slf4j:slf4j-api:1.7.36'
@@ -50,6 +53,12 @@ jar {
             'ConnectorBundle-FrameworkVersion': "${connidVersion}"
         )
     }
+
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 test {
