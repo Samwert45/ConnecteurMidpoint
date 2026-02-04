@@ -111,21 +111,36 @@ public class JsonMapper {
                 }
             } else {
                 // Handle add/remove for multi-valued attributes
-                // For simplicity, we'll need the current value to compute final state
-                // In this implementation, we'll just send what we have
                 List<Object> toAdd = delta.getValuesToAdd();
                 List<Object> toRemove = delta.getValuesToRemove();
 
+                // Send added values
                 if (toAdd != null && !toAdd.isEmpty()) {
                     result.put(name, toAdd.size() == 1 ? toAdd.get(0) : toAdd);
-                } else if (toRemove != null && !toRemove.isEmpty()) {
-                    // Signal removal by setting to null or empty array
-                    result.put(name, null);
+                }
+
+                // Track removed values for specific attributes (roles, ldapGroups)
+                // This allows the gateway to trigger DELETE operations for removed services
+                if (toRemove != null && !toRemove.isEmpty()) {
+                    String removedKey = "removed" + capitalizeFirst(name);
+                    result.put(removedKey, toRemove.size() == 1 ? toRemove.get(0) : toRemove);
+                }
+
+                // If only removal (no add), also set the attribute to empty
+                if ((toAdd == null || toAdd.isEmpty()) && (toRemove != null && !toRemove.isEmpty())) {
+                    result.put(name, Collections.emptyList());
                 }
             }
         }
 
         return result;
+    }
+
+    private static String capitalizeFirst(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
     }
 
     private static Object getSingleValue(List<Object> values) {

@@ -145,6 +145,21 @@ public class RestGatewayConnector implements PoolableConnector, CreateOp, Update
         ldapGroupsBuilder.setMultiValued(true);
         userClassBuilder.addAttributeInfo(ldapGroupsBuilder.build());
 
+        // MySQL grants (comma-separated privileges like "SELECT, INSERT, UPDATE")
+        userClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("mysqlGrants", String.class));
+
+        // PostgreSQL grants (comma-separated privileges like "SELECT, INSERT, UPDATE")
+        userClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("postgresqlGrants", String.class));
+
+        // Odoo provisioning control
+        userClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("odooCreateUser", Boolean.class));
+        userClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("odooCreateEmployee", Boolean.class));
+
+        // Employee attributes
+        userClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("employeeNumber", String.class));
+        userClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("department", String.class));
+        userClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("mobile", String.class));
+
         // Password
         userClassBuilder.addAttributeInfo(OperationalAttributeInfos.PASSWORD);
 
