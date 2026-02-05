@@ -3,6 +3,7 @@ package lu.lns.connector.restgateway;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
 import org.identityconnectors.framework.common.exceptions.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -21,6 +23,9 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class RestGatewayClient {
 
@@ -125,6 +130,91 @@ public class RestGatewayClient {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new ConnectorException("Connection test interrupted", e);
+        }
+    }
+
+    /**
+     * Execute a GET request and return the response body
+     */
+    public String get(String endpoint) {
+        String url = gatewayUrl + endpoint;
+
+        LOG.debug("GET {}", url);
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .timeout(Duration.ofMillis(requestTimeout))
+            .header("Accept", "application/json")
+            .GET()
+            .build();
+
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            LOG.debug("Response status: {}, body: {}", response.statusCode(), response.body());
+
+            handleResponseStatus(response.statusCode(), response.body());
+
+            return response.body();
+
+        } catch (HttpTimeoutException e) {
+            LOG.error("Request timeout after {}ms: {}", requestTimeout, url, e);
+            throw new OperationTimeoutException("Request timeout after " + requestTimeout + "ms", e);
+
+        } catch (ConnectException e) {
+            LOG.error("Cannot connect to gateway at {}", gatewayUrl, e);
+            throw new ConnectionFailedException("Cannot connect to gateway at " + gatewayUrl, e);
+
+        } catch (IOException e) {
+            LOG.error("I/O error communicating with gateway", e);
+            throw new ConnectorIOException("I/O error communicating with gateway", e);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOG.error("Request interrupted", e);
+            throw new ConnectorException("Request interrupted", e);
+        }
+    }
+
+    /**
+     * Fetch LDAP groups from the gateway
+     */
+    public List<Map<String, Object>> fetchLdapGroups() {
+        try {
+            String response = get("/entitlements/ldap-groups");
+            Type listType = new TypeToken<List<Map<String, Object>>>(){}.getType();
+            return GSON.fromJson(response, listType);
+        } catch (Exception e) {
+            LOG.warn("Failed to fetch LDAP groups: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Fetch PostgreSQL profiles from the gateway
+     */
+    public List<Map<String, Object>> fetchPostgresqlProfiles() {
+        try {
+            String response = get("/entitlements/postgresql-profiles");
+            Type listType = new TypeToken<List<Map<String, Object>>>(){}.getType();
+            return GSON.fromJson(response, listType);
+        } catch (Exception e) {
+            LOG.warn("Failed to fetch PostgreSQL profiles: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Fetch MySQL profiles from the gateway
+     */
+    public List<Map<String, Object>> fetchMysqlProfiles() {
+        try {
+            String response = get("/entitlements/mysql-profiles");
+            Type listType = new TypeToken<List<Map<String, Object>>>(){}.getType();
+            return GSON.fromJson(response, listType);
+        } catch (Exception e) {
+            LOG.warn("Failed to fetch MySQL profiles: {}", e.getMessage());
+            return new ArrayList<>();
         }
     }
 

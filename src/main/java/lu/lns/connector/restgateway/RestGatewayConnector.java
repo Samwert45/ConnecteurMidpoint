@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -193,6 +194,37 @@ public class RestGatewayConnector implements PoolableConnector, CreateOp, Update
         orgClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("costCenter", String.class));
         schemaBuilder.defineObjectClass(orgClassBuilder.build());
 
+        // ============================================================
+        // ENTITLEMENTS - Groupes LDAP et Profils SQL
+        // ============================================================
+
+        // LdapGroup ObjectClass (Entitlement)
+        ObjectClassInfoBuilder ldapGroupClassBuilder = new ObjectClassInfoBuilder();
+        ldapGroupClassBuilder.setType("LdapGroup");
+        ldapGroupClassBuilder.addAttributeInfo(Name.INFO);
+        ldapGroupClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("dn", String.class));
+        ldapGroupClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("cn", String.class));
+        ldapGroupClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("description", String.class));
+        schemaBuilder.defineObjectClass(ldapGroupClassBuilder.build());
+
+        // PostgresqlProfile ObjectClass (Entitlement)
+        ObjectClassInfoBuilder pgProfileClassBuilder = new ObjectClassInfoBuilder();
+        pgProfileClassBuilder.setType("PostgresqlProfile");
+        pgProfileClassBuilder.addAttributeInfo(Name.INFO);
+        pgProfileClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("profileName", String.class));
+        pgProfileClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("grants", String.class));
+        pgProfileClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("description", String.class));
+        schemaBuilder.defineObjectClass(pgProfileClassBuilder.build());
+
+        // MysqlProfile ObjectClass (Entitlement)
+        ObjectClassInfoBuilder mysqlProfileClassBuilder = new ObjectClassInfoBuilder();
+        mysqlProfileClassBuilder.setType("MysqlProfile");
+        mysqlProfileClassBuilder.addAttributeInfo(Name.INFO);
+        mysqlProfileClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("profileName", String.class));
+        mysqlProfileClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("grants", String.class));
+        mysqlProfileClassBuilder.addAttributeInfo(AttributeInfoBuilder.build("description", String.class));
+        schemaBuilder.defineObjectClass(mysqlProfileClassBuilder.build());
+
         Schema schema = schemaBuilder.build();
         LOG.info("Schema built with {} object classes", schema.getObjectClassInfo().size());
         return schema;
@@ -295,6 +327,109 @@ public class RestGatewayConnector implements PoolableConnector, CreateOp, Update
         String entityType = getEntityType(objectClass);
         LOG.info("executeQuery called for {} with query: {}", entityType, query);
 
+        String objectClassName = objectClass.getObjectClassValue();
+
+        // ============================================================
+        // ENTITLEMENTS - Recherche des groupes LDAP et profils SQL
+        // ============================================================
+
+        if ("LdapGroup".equals(objectClassName)) {
+            // Récupérer les groupes LDAP depuis la Gateway
+            LOG.info("Fetching LDAP groups from gateway...");
+            List<Map<String, Object>> groups = getHttpClient().fetchLdapGroups();
+            LOG.info("Found {} LDAP groups", groups.size());
+
+            for (Map<String, Object> group : groups) {
+                String dn = (String) group.get("dn");
+                String cn = (String) group.get("cn");
+                String description = (String) group.get("description");
+
+                // Si on a un query (UID), filtrer
+                if (query != null && !query.isEmpty() && !query.equals(dn)) {
+                    continue;
+                }
+
+                ConnectorObjectBuilder builder = new ConnectorObjectBuilder();
+                builder.setObjectClass(objectClass);
+                builder.setUid(dn);  // UID = DN du groupe
+                builder.setName(cn != null ? cn : dn);  // Name = CN
+                builder.addAttribute("dn", dn);
+                builder.addAttribute("cn", cn);
+                builder.addAttribute("description", description);
+
+                if (!handler.handle(builder.build())) {
+                    break;
+                }
+            }
+            return;
+        }
+
+        if ("PostgresqlProfile".equals(objectClassName)) {
+            // Récupérer les profils PostgreSQL depuis la Gateway
+            LOG.info("Fetching PostgreSQL profiles from gateway...");
+            List<Map<String, Object>> profiles = getHttpClient().fetchPostgresqlProfiles();
+            LOG.info("Found {} PostgreSQL profiles", profiles.size());
+
+            for (Map<String, Object> profile : profiles) {
+                String profileName = (String) profile.get("profileName");
+                String grants = (String) profile.get("grants");
+                String description = (String) profile.get("description");
+
+                // Si on a un query (UID), filtrer
+                if (query != null && !query.isEmpty() && !query.equals(profileName)) {
+                    continue;
+                }
+
+                ConnectorObjectBuilder builder = new ConnectorObjectBuilder();
+                builder.setObjectClass(objectClass);
+                builder.setUid(profileName);  // UID = profileName
+                builder.setName(profileName);
+                builder.addAttribute("profileName", profileName);
+                builder.addAttribute("grants", grants);
+                builder.addAttribute("description", description);
+
+                if (!handler.handle(builder.build())) {
+                    break;
+                }
+            }
+            return;
+        }
+
+        if ("MysqlProfile".equals(objectClassName)) {
+            // Récupérer les profils MySQL depuis la Gateway
+            LOG.info("Fetching MySQL profiles from gateway...");
+            List<Map<String, Object>> profiles = getHttpClient().fetchMysqlProfiles();
+            LOG.info("Found {} MySQL profiles", profiles.size());
+
+            for (Map<String, Object> profile : profiles) {
+                String profileName = (String) profile.get("profileName");
+                String grants = (String) profile.get("grants");
+                String description = (String) profile.get("description");
+
+                // Si on a un query (UID), filtrer
+                if (query != null && !query.isEmpty() && !query.equals(profileName)) {
+                    continue;
+                }
+
+                ConnectorObjectBuilder builder = new ConnectorObjectBuilder();
+                builder.setObjectClass(objectClass);
+                builder.setUid(profileName);  // UID = profileName
+                builder.setName(profileName);
+                builder.addAttribute("profileName", profileName);
+                builder.addAttribute("grants", grants);
+                builder.addAttribute("description", description);
+
+                if (!handler.handle(builder.build())) {
+                    break;
+                }
+            }
+            return;
+        }
+
+        // ============================================================
+        // ACCOUNTS et autres types (comportement existant)
+        // ============================================================
+
         // Si on a un UID (query), on retourne un ConnectorObject "simulé"
         // Cela permet à MidPoint de considérer que l'objet existe
         if (query != null && !query.isEmpty()) {
@@ -309,5 +444,16 @@ public class RestGatewayConnector implements PoolableConnector, CreateOp, Update
         } else {
             LOG.debug("No query provided - returning empty result set (write-only connector)");
         }
+    }
+
+    /**
+     * Get HTTP client (creates one if needed for RabbitMQ mode)
+     */
+    private RestGatewayClient getHttpClient() {
+        if (client != null) {
+            return client;
+        }
+        // En mode RabbitMQ, on crée un client HTTP temporaire pour les entitlements
+        return new RestGatewayClient(configuration);
     }
 }
