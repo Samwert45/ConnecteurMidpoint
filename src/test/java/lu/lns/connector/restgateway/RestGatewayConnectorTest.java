@@ -70,7 +70,8 @@ public class RestGatewayConnectorTest {
 
         assertNotNull(schema);
         Set<ObjectClassInfo> objectClasses = schema.getObjectClassInfo();
-        assertEquals(4, objectClasses.size());
+        // 4 types de base + 3 entitlements = 7
+        assertEquals(7, objectClasses.size());
 
         // Check User (Account) class
         ObjectClassInfo accountClass = schema.findObjectClassInfo(ObjectClass.ACCOUNT_NAME);
@@ -105,6 +106,25 @@ public class RestGatewayConnectorTest {
         assertNotNull(orgClass);
         assertNotNull(findAttribute(orgClass, "parentOrgRef"));
         assertNotNull(findAttribute(orgClass, "displayName"));
+
+        // Check LdapGroup entitlement class
+        ObjectClassInfo ldapGroupClass = schema.findObjectClassInfo("LdapGroup");
+        assertNotNull(ldapGroupClass);
+        assertNotNull(findAttribute(ldapGroupClass, "dn"));
+        assertNotNull(findAttribute(ldapGroupClass, "cn"));
+        assertNotNull(findAttribute(ldapGroupClass, "description"));
+
+        // Check PostgresqlProfile entitlement class
+        ObjectClassInfo pgProfileClass = schema.findObjectClassInfo("PostgresqlProfile");
+        assertNotNull(pgProfileClass);
+        assertNotNull(findAttribute(pgProfileClass, "profileName"));
+        assertNotNull(findAttribute(pgProfileClass, "grants"));
+
+        // Check MysqlProfile entitlement class
+        ObjectClassInfo mysqlProfileClass = schema.findObjectClassInfo("MysqlProfile");
+        assertNotNull(mysqlProfileClass);
+        assertNotNull(findAttribute(mysqlProfileClass, "profileName"));
+        assertNotNull(findAttribute(mysqlProfileClass, "grants"));
 
         connector.dispose();
     }
